@@ -27,6 +27,22 @@ class PostQuerySet(models.QuerySet):
         return self
 
 
+class TagQuerySet(models.QuerySet):
+
+    def popular(self):
+        tags_by_posts = self.annotate(related_posts=Count('posts')).order_by('-related_posts')
+        return tags_by_posts
+
+    def fetch_with_posts(self):
+        tags_ids = [tag.id for tag in self]
+        tags_in_post = Tag.objects.filter(id__in=tags_ids).annotate(posts_count=Count('posts'))
+        ids_and_posts = tags_in_post.values_list('id', 'posts_count')
+        count_for_id = dict(ids_and_posts)   
+        for tag in self:
+            tag.posts_count = count_for_id[tag.id] 
+        return self
+
+
 class Post(models.Model):
     objects = PostQuerySet.as_manager()
 
@@ -64,6 +80,7 @@ class Post(models.Model):
 
 
 class Tag(models.Model):
+    objects = TagQuerySet.as_manager()
     title = models.CharField('Тег', max_length=20, unique=True)
 
     def __str__(self):
