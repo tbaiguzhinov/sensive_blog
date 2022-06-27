@@ -5,32 +5,42 @@ from django.db.models import Count
 
 
 class PostQuerySet(models.QuerySet):
-    
+
     def year(self, year):
-        posts_at_year = self.filter(published_at__year=year).order_by('published_at')
+        posts_at_year = self.filter(
+            published_at__year=year
+        ).order_by('published_at')
         return posts_at_year
 
     def popular(self):
-        posts_by_likes = self.annotate(likes_count=Count('likes')).order_by('-likes_count')
+        posts_by_likes = self.annotate(
+            likes_count=Count('likes')
+        ).order_by('-likes_count')
         return posts_by_likes
 
     def fetch_with_comments_count(self):
         """Add comments count to each Post object.
-        Best used to avoid double annotation in one request, hence reducing the load on DB.
+        Best used to avoid double annotation, hence reducing the load on DB.
         """
         posts_ids = [post.id for post in self]
-        posts_with_comments = Post.objects.filter(id__in=posts_ids).annotate(comments_count=Count('comments'))
-        ids_and_comments = posts_with_comments.values_list('id', 'comments_count')
-        count_for_id = dict(ids_and_comments)   
+        posts_with_comments = Post.objects.filter(
+            id__in=posts_ids
+        ).annotate(comments_count=Count('comments'))
+        ids_and_comments = posts_with_comments.values_list(
+            'id', 'comments_count'
+        )
+        count_for_id = dict(ids_and_comments)
         for post in self:
-            post.comments_count = count_for_id[post.id] 
+            post.comments_count = count_for_id[post.id]
         return self
 
 
 class TagQuerySet(models.QuerySet):
 
     def popular(self):
-        tags_by_posts = self.annotate(related_posts=Count('posts')).order_by('-related_posts')
+        tags_by_posts = self.annotate(
+            related_posts=Count('posts')
+        ).order_by('-related_posts')
         return tags_by_posts
 
 
